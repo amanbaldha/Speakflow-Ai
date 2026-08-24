@@ -39,15 +39,15 @@ export default function LandingPage() {
             <History className="h-4 w-4" />
             View Previous Sessions
             <Badge variant="muted" className="ml-1">
-              Coming in Phase 4
+              Coming soon
             </Badge>
           </Button>
         </div>
 
         <p className="mt-16 max-w-md text-xs text-muted-foreground">
-          Requires a working microphone. Works best in Chrome or Edge on a
-          MacBook. Your voice is sent to OpenAI for a live response — nothing
-          is stored unless you choose to record.
+          Requires a working microphone. Works best in Chrome or Edge.
+          You&apos;ll build a question set first, then answer one question at
+          a time with a live transcript and real feedback after each answer.
         </p>
       </div>
     </main>

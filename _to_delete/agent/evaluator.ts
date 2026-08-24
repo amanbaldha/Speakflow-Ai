@@ -31,7 +31,7 @@ export async function evaluateTurn(params: {
         : (process.env.GEMINI_API_KEY && !rawKey.startsWith("sk-") ? "https://generativelanguage.googleapis.com/v1beta/openai/" : undefined)
     });
 
-    const EVAL_MODEL = isGroq ? "qwen/qwen3.6-27b" : (process.env.GEMINI_API_KEY ? "gemini-1.5-flash" : process.env.OPENAI_EVAL_MODEL || "gpt-4o-mini");
+    const EVAL_MODEL = isGroq ? (process.env.GROQ_EVAL_MODEL || "groq/compound") : (process.env.GEMINI_API_KEY ? "gemini-1.5-flash" : process.env.OPENAI_EVAL_MODEL || "gpt-4o-mini");
 
     const completion = await client.chat.completions.create({
       model: EVAL_MODEL,

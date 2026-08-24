@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SessionReport } from "@/components/evaluation/SessionReport";
+import { RecordingPlayback } from "@/components/recording/RecordingPlayback";
 import { loadSessionReport } from "@/lib/session/storage";
 import type { SessionReport as SessionReportType } from "@/types";
 
@@ -38,6 +39,9 @@ export default function ReportPage() {
         <Link href="/">
           <Button variant="secondary">Done</Button>
         </Link>
+      </div>
+      <div className="mb-6">
+        <RecordingPlayback />
       </div>
       <SessionReport report={report} />
       <div className="mt-8 flex justify-center gap-3">

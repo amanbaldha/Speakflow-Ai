@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import type { SessionReport as SessionReportType } from "@/types";
 
 function ScoreRing({ label, value }: { label: string; value: number }) {
@@ -28,6 +29,7 @@ export function SessionReport({ report }: { report: SessionReportType }) {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap justify-center gap-6">
+            <ScoreRing label="Relevance" value={report.scores.relevance} />
             <ScoreRing label="Fluency" value={report.scores.fluency} />
             <ScoreRing label="Grammar" value={report.scores.grammar} />
             <ScoreRing label="Vocabulary" value={report.scores.vocabulary} />
@@ -110,16 +112,61 @@ export function SessionReport({ report }: { report: SessionReportType }) {
 
       <Card>
         <CardHeader>
+          <CardTitle>Question by Question</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {report.questionBreakdown.map((item, i) => (
+            <details key={i} className="group rounded-xl border border-border bg-surface-2 p-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm">
+                <span className="flex-1">
+                  <span className="text-muted-foreground">{i + 1}.</span> {item.questionText}
+                </span>
+                {item.analysis ? (
+                  <Badge variant={item.analysis.scores.relevance >= 60 ? "success" : "muted"}>
+                    {item.analysis.scores.relevance}
+                  </Badge>
+                ) : (
+                  <Badge variant="muted">skipped</Badge>
+                )}
+              </summary>
+              <div className="mt-3 space-y-2 text-sm">
+                <p className="text-muted-foreground">
+                  Your answer:{" "}
+                  <span className="text-foreground">
+                    {item.answerText.trim() ? `"${item.answerText}"` : "(skipped)"}
+                  </span>
+                </p>
+                {item.analysis && (
+                  <>
+                    <p className="text-success">{item.analysis.feedback}</p>
+                    {item.analysis.corrections.map((c, ci) => (
+                      <p key={ci} className="text-muted-foreground">
+                        <span className="line-through">{c.original}</span> →{" "}
+                        <span className="text-foreground">{c.improved}</span> — {c.explanation}
+                      </p>
+                    ))}
+                    <p className="rounded-lg bg-surface px-3 py-2 text-xs text-muted-foreground">
+                      💡 {item.analysis.modelAnswerTip}
+                    </p>
+                  </>
+                )}
+              </div>
+            </details>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Speaking Statistics</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
             <Stat label="Speaking time" value={`${durationMinutes} min`} />
-            <Stat label="Turns" value={report.stats.numberOfTurns} />
+            <Stat label="Questions answered" value={report.stats.numberOfQuestions - report.stats.questionsSkipped} />
+            <Stat label="Questions skipped" value={report.stats.questionsSkipped} />
             <Stat label="Avg. response length" value={`${report.stats.averageResponseLengthWords} words`} />
             <Stat label="Filler words" value={report.stats.fillerWordCount} />
-            <Stat label="Questions you asked" value={report.stats.questionsAskedByUser} />
-            <Stat label="Questions you answered" value={report.stats.questionsAnsweredByUser} />
           </div>
         </CardContent>
       </Card>

@@ -1,52 +1,67 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
-import type { TurnEvaluation } from "@/types";
+import { Loader2 } from "lucide-react";
+import type { QuestionAnalysis } from "@/types";
 
 interface FeedbackCardProps {
-  evaluation: TurnEvaluation | null;
-  onDismiss: () => void;
+  analysis: QuestionAnalysis | null;
+  pending: boolean;
 }
 
-/** A small, non-intrusive card — spec section 9: "Do not overwhelm the
- *  user." Shows one positive note plus (at most) one gentle correction,
- *  auto-dismisses after a few seconds, and is fully optional to show. */
-export function FeedbackCard({ evaluation, onDismiss }: FeedbackCardProps) {
-  const [visible, setVisible] = useState(false);
+const SCORE_LABELS: Array<{ key: keyof QuestionAnalysis["scores"]; label: string }> = [
+  { key: "relevance", label: "Relevance" },
+  { key: "fluency", label: "Fluency" },
+  { key: "grammar", label: "Grammar" },
+  { key: "clarity", label: "Clarity" },
+];
 
-  useEffect(() => {
-    if (!evaluation) return;
-    setVisible(true);
-    const timer = setTimeout(() => setVisible(false), 8000);
-    return () => clearTimeout(timer);
-  }, [evaluation]);
+/** Shown right after the user confirms an answer — a real, per-question
+ *  analysis result (never faked): while it's in flight this shows a plain
+ *  "Analyzing…" state, and once it resolves shows the actual scores,
+ *  feedback, and (if useful) a quick correction and prep tip. */
+export function FeedbackCard({ analysis, pending }: FeedbackCardProps) {
+  if (pending) {
+    return (
+      <div className="flex w-full max-w-xl items-center justify-center gap-2 rounded-2xl border border-border bg-surface px-4 py-4 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Analyzing your answer…
+      </div>
+    );
+  }
 
-  if (!evaluation || !visible) return null;
-  const topCorrection = evaluation.corrections[0];
+  if (!analysis) {
+    return (
+      <div className="w-full max-w-xl rounded-2xl border border-border bg-surface px-4 py-4 text-center text-sm text-muted-foreground">
+        We couldn&apos;t analyze this answer right now — it&apos;s still saved and will be part of your final report.
+      </div>
+    );
+  }
+
+  const topCorrection = analysis.corrections[0];
 
   return (
-    <div className="animate-fade-in pointer-events-auto max-w-sm rounded-2xl border border-border bg-surface/95 p-4 shadow-lg backdrop-blur">
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-medium text-success">{evaluation.positiveNote || "Nice answer!"}</p>
-        <button
-          onClick={() => {
-            setVisible(false);
-            onDismiss();
-          }}
-          className="text-muted-foreground hover:text-foreground"
-          aria-label="Dismiss feedback"
-        >
-          <X className="h-4 w-4" />
-        </button>
+    <div className="w-full max-w-xl space-y-3 rounded-2xl border border-border bg-surface p-5 text-left">
+      <div className="flex flex-wrap gap-4">
+        {SCORE_LABELS.map(({ key, label }) => (
+          <div key={key} className="flex flex-col items-center gap-0.5">
+            <span className="text-lg font-semibold text-accent">{analysis.scores[key]}</span>
+            <span className="text-[11px] text-muted-foreground">{label}</span>
+          </div>
+        ))}
       </div>
+
+      <p className="text-sm text-success">{analysis.feedback}</p>
+
       {topCorrection && (
-        <div className="mt-2 space-y-1 text-sm">
-          <p className="text-muted-foreground">
-            <span className="line-through">{topCorrection.original}</span> →{" "}
-            <span className="text-foreground">{topCorrection.improved}</span>
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          <span className="line-through">{topCorrection.original}</span> →{" "}
+          <span className="text-foreground">{topCorrection.improved}</span>
+        </p>
+      )}
+
+      {analysis.modelAnswerTip && (
+        <p className="rounded-xl bg-surface-2 px-3 py-2 text-xs text-muted-foreground">
+          💡 {analysis.modelAnswerTip}
+        </p>
       )}
     </div>
   );

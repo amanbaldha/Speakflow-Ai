@@ -2,47 +2,34 @@
   "name": "speakflow-ai",
   "version": "0.1.0",
   "private": true,
-  "description": "SpeakFlow — AI English conversation & interview practice with realtime voice.",
+  "description": "SpeakFlow — AI English conversation & interview practice, question by question.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "agent:dev": "tsx watch agent/index.ts dev",
-    "agent:start": "tsx agent/index.ts start",
-    "agent:download-files": "tsx agent/index.ts download-files"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@livekit/agents": "1.7.0",
-    "@livekit/agents-plugin-openai": "1.7.0",
-    "@livekit/components-react": "2.9.24",
-    "@livekit/components-styles": "1.1.6",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
-    "livekit-client": "2.22.0",
-    "livekit-server-sdk": "2.18.0",
     "lucide-react": "0.474.0",
     "next": "14.2.35",
-    "openai": "7.5.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "server-only": "0.0.1",
-    "tailwind-merge": "2.6.0",
-    "zod": "4.4.3"
+    "tailwind-merge": "2.6.0"
   },
   "devDependencies": {
     "@types/node": "20.17.9",
     "@types/react": "18.3.18",
     "@types/react-dom": "18.3.5",
     "autoprefixer": "10.4.20",
-    "dotenv": "16.4.7",
     "eslint": "8.57.1",
     "eslint-config-next": "14.2.35",
     "postcss": "8.4.49",
     "tailwindcss": "3.4.17",
     "tailwindcss-animate": "1.0.7",
-    "tsx": "4.19.2",
     "typescript": "5.7.2"
   },
   "engines": {

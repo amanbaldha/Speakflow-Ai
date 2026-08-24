@@ -2,65 +2,46 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { SessionRoom } from "@/components/voice/SessionRoom";
-import { loadSessionConfig } from "@/lib/session/storage";
-import type { SessionConfig } from "@/types";
-import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InterviewRunner } from "@/components/voice/InterviewRunner";
+import { loadPreparedSession } from "@/lib/session/storage";
+import type { PreparedSession } from "@/types";
+import { Loader2 } from "lucide-react";
 
 export function SessionClient() {
   const router = useRouter();
-  const [config, setConfig] = useState<SessionConfig | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [transcriptDefault, setTranscriptDefault] = useState(true);
+  const [prepared, setPrepared] = useState<PreparedSession | null | undefined>(undefined);
   const startedAtRef = useRef(Date.now());
   const sessionIdRef = useRef<string>(
     typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `session-${Date.now()}`
   );
 
   useEffect(() => {
-    const stored = loadSessionConfig();
-    if (!stored) {
+    const stored = loadPreparedSession();
+    if (!stored || stored.questions.length === 0) {
       router.replace("/setup");
       return;
     }
-    setConfig(stored);
-
-    try {
-      const rawDevices = sessionStorage.getItem("speakflow.deviceSelection");
-      if (rawDevices) {
-        const parsed = JSON.parse(rawDevices);
-        if (typeof parsed.transcriptEnabled === "boolean") setTranscriptDefault(parsed.transcriptEnabled);
-      }
-    } catch {
-      // Non-critical UI preference — default (transcript on) is fine.
-    }
+    setPrepared(stored);
   }, [router]);
 
-  if (error) {
+  if (prepared === undefined) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3">
+        <Loader2 className="h-6 w-6 animate-spin text-accent" />
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
+
+  if (!prepared) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="max-w-sm text-sm text-muted-foreground">{error}</p>
+        <p className="text-sm text-muted-foreground">No questions found. Let&apos;s set up a session first.</p>
         <Button onClick={() => router.push("/setup")}>Back to setup</Button>
       </div>
     );
   }
 
-  if (!config) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3">
-        <Loader2 className="h-6 w-6 animate-spin text-accent" />
-        <p className="text-sm text-muted-foreground">Initializing session…</p>
-      </div>
-    );
-  }
-
-  return (
-    <SessionRoom
-      config={config}
-      sessionId={sessionIdRef.current}
-      startedAt={startedAtRef.current}
-      transcriptEnabledDefault={transcriptDefault}
-    />
-  );
+  return <InterviewRunner prepared={prepared} sessionId={sessionIdRef.current} startedAt={startedAtRef.current} />;
 }

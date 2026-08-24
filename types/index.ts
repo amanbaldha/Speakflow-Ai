@@ -1,12 +1,23 @@
-// Shared types used by the frontend, the API routes, and the agent worker.
-// Keep this file dependency-free (no "server-only" / "react" imports) so it
-// can be imported from every part of the stack.
+// Shared types used by the frontend and the API routes. There is no
+// separate agent process anymore — everything here is consumed by either a
+// React client component or a Next.js API route, both within the same app.
 
 export type ConversationMode = "casual" | "interview";
 
 export type Difficulty = "beginner" | "intermediate" | "advanced";
 
-export type Topic =
+/** Interview-mode question categories (spec: "HR, Android, casual, DSA…"). */
+export type InterviewCategory =
+  | "hr"
+  | "android"
+  | "dsa"
+  | "system-design"
+  | "behavioral"
+  | "casual"
+  | "custom";
+
+/** Casual-mode topics (kept from the original conversation-topic list). */
+export type CasualTopic =
   | "daily-life"
   | "technology"
   | "work"
@@ -17,82 +28,85 @@ export type Topic =
   | "random"
   | "custom";
 
-export type AiPersonality =
-  | "friendly"
-  | "professional"
-  | "interviewer"
-  | "strict-interviewer";
+export type QuestionOrder = "sequential" | "random";
 
-export type CorrectionTiming = "after-answer" | "end-of-session" | "real-time";
-
-/** Serialized as LiveKit participant metadata so the agent worker can read
- *  it as soon as it joins the room — this is how mode/difficulty/topic are
- *  "sent" to the agent without a separate backchannel. */
-export interface SessionConfig {
+/** What the setup screen sends to POST /api/questions/generate. */
+export interface QuestionSetRequest {
   mode: ConversationMode;
+  category: InterviewCategory;
+  topic: CasualTopic;
+  /** The free-text "I want this type of question…" chat box. */
+  description?: string;
+  /** The typed label when category/topic is "custom". */
+  customLabel?: string;
   difficulty: Difficulty;
-  topic: Topic;
-  customTopic?: string;
-  personality: AiPersonality;
-  correctionTiming: CorrectionTiming;
-  userName?: string;
+  count: number;
+  order: QuestionOrder;
+  /** Question texts to avoid repeating — used when regenerating one question
+   *  or topping up the set so we don't get duplicates. */
+  avoid?: string[];
 }
 
-export type TranscriptRole = "user" | "agent";
+/** What the setup screen hands off to the session screen once the user is
+ *  happy with the reviewed/edited question list. */
+export interface PreparedSession {
+  request: QuestionSetRequest;
+  questions: InterviewQuestion[];
+}
 
-export interface TranscriptEntry {
+export interface InterviewQuestion {
   id: string;
-  role: TranscriptRole;
   text: string;
-  isFinal: boolean;
-  timestamp: number;
+  /** "generated" = produced by the question generator (possibly via web
+   *  search). "custom" = typed directly by the user on the review screen. */
+  source: "generated" | "custom";
 }
 
-/** Result of the (separate, silent) evaluator run after each finished user turn. */
-export interface TurnEvaluation {
-  id: string;
-  turnText: string;
-  timestamp: number;
+/** The result of the (separate, silent) per-question analysis call — see
+ *  prompts/questionAnalysisPrompt.ts. Scores span both spoken-English
+ *  quality AND, for interview mode, how well the question itself was
+ *  actually answered. */
+export interface QuestionAnalysis {
   scores: {
+    /** How well the answer actually addressed the question — correctness /
+     *  completeness / relevance. For casual mode this mostly reflects how
+     *  fully they engaged with the prompt. */
+    relevance: number;
     grammar: number;
     vocabulary: number;
     fluency: number;
-    sentenceStructure: number;
     clarity: number;
     confidence: number;
-    naturalness: number;
   };
-  fillerWordCount: number;
-  repeatedWords: string[];
+  /** One short, specific, encouraging note — never generic. */
+  feedback: string;
   corrections: Array<{
-    type: "grammar" | "vocabulary" | "structure";
     original: string;
     improved: string;
     explanation: string;
   }>;
-  betterSentence?: string;
-  positiveNote?: string;
+  /** What a strong answer would include/say — genuinely useful prep value,
+   *  especially for HR/DSA/technical questions. */
+  modelAnswerTip: string;
 }
 
-export type AgentState =
-  | "connecting"
-  | "pre-connect-buffering"
-  | "failed"
-  | "initializing"
-  | "idle"
-  | "listening"
-  | "thinking"
-  | "speaking"
-  | "disconnected";
+export interface QAEntry {
+  question: InterviewQuestion;
+  answerText: string;
+  startedAt: number;
+  endedAt: number;
+  /** null while analysis is pending/unavailable — the UI and the final
+   *  summary both handle a missing analysis gracefully rather than faking
+   *  one. */
+  analysis: QuestionAnalysis | null;
+}
 
 export interface SpeakingStatistics {
   totalSpeakingTimeSeconds: number;
-  numberOfTurns: number;
+  numberOfQuestions: number;
   averageResponseLengthWords: number;
   fillerWordCount: number;
-  longPauseCount: number;
-  questionsAskedByUser: number;
-  questionsAnsweredByUser: number;
+  questionsSkipped: number;
 }
 
 export interface VocabSuggestion {
@@ -106,17 +120,25 @@ export interface MistakeExample {
   explanation: string;
 }
 
+export interface QuestionBreakdownItem {
+  questionText: string;
+  answerText: string;
+  analysis: QuestionAnalysis | null;
+}
+
 /** The final report shown on the /report screen, produced by
- *  POST /api/summary (sessionSummaryPrompt). */
+ *  POST /api/summary from all the QAEntry results. */
 export interface SessionReport {
   sessionId: string;
   mode: ConversationMode;
-  topic: Topic;
+  category: InterviewCategory;
+  topic: CasualTopic;
   difficulty: Difficulty;
   startedAt: number;
   endedAt: number;
   overallScore: number;
   scores: {
+    relevance: number;
     fluency: number;
     grammar: number;
     vocabulary: number;
@@ -128,9 +150,5 @@ export interface SessionReport {
   commonMistakes: MistakeExample[];
   betterVocabulary: VocabSuggestion[];
   stats: SpeakingStatistics;
-}
-
-export interface DeviceOption {
-  deviceId: string;
-  label: string;
+  questionBreakdown: QuestionBreakdownItem[];
 }

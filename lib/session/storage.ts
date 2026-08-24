@@ -1,29 +1,30 @@
 "use client";
 
-import type { SessionConfig, SessionReport } from "@/types";
+import type { PreparedSession, SessionReport } from "@/types";
 
-// Phase 1 MVP has no database yet (Supabase persistence lands in Phase 4 —
-// see lib/supabase/client.ts). Session config and the final report are
-// handed between screens via sessionStorage, which is perfectly fine here:
-// this is a real page running in the user's own browser at localhost, not a
-// preview surface, and nothing here needs to survive a tab close.
+// There's no database yet (Supabase persistence lands in Phase 4 — see
+// lib/supabase/client.ts). The prepared question set and the final report
+// are handed between screens via sessionStorage, which is perfectly fine
+// here: this is a real page running in the user's own browser at
+// localhost, not a preview surface, and nothing here needs to survive a
+// tab close.
 
-const CONFIG_KEY = "speakflow.sessionConfig";
+const PREPARED_KEY = "speakflow.preparedSession";
 const REPORT_KEY = "speakflow.lastReport";
 
-export function saveSessionConfig(config: SessionConfig) {
+export function savePreparedSession(session: PreparedSession) {
   try {
-    sessionStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    sessionStorage.setItem(PREPARED_KEY, JSON.stringify(session));
   } catch {
     // sessionStorage can be unavailable (private mode, disabled storage) —
-    // the setup screen falls back to passing config via the URL in that case.
+    // in that case the user just has to redo setup if they navigate away.
   }
 }
 
-export function loadSessionConfig(): SessionConfig | null {
+export function loadPreparedSession(): PreparedSession | null {
   try {
-    const raw = sessionStorage.getItem(CONFIG_KEY);
-    return raw ? (JSON.parse(raw) as SessionConfig) : null;
+    const raw = sessionStorage.getItem(PREPARED_KEY);
+    return raw ? (JSON.parse(raw) as PreparedSession) : null;
   } catch {
     return null;
   }
@@ -34,7 +35,7 @@ export function saveSessionReport(report: SessionReport) {
     sessionStorage.setItem(REPORT_KEY, JSON.stringify(report));
   } catch {
     // If storage is unavailable, the report still rendered once client-side;
-    // it just won't survive a navigation. Acceptable for the MVP.
+    // it just won't survive a navigation. Acceptable for now.
   }
 }
 
